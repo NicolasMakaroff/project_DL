@@ -11,6 +11,7 @@ from torchvision import transforms as T
 from imgaug import augmenters as iaa
 import pandas as pd
 import pathlib
+from data import *
 
 class_names = [
 "Nucleoplasm", 
@@ -155,7 +156,7 @@ class ProteinDataset(Dataset):
             y = str(self.images_df.iloc[index].Id.absolute())
         if self.augument:
             X = self.augumentor(X)
-        X = T.Compose([T.ToPILImage(), T.ToTensor()])(X)
+        X = T.Compose([T.ToPILImage(),T.Resize((225, 225)), T.ToTensor()])(X)
         return X.float(), y
 
     def read_labels(self, index):
@@ -165,10 +166,10 @@ class ProteinDataset(Dataset):
         row = self.images_df.iloc[index]
         filename = str(row.Id.absolute())
         images = np.zeros(shape=(self.img_size, self.img_size, 4))
-        r = np.array(Image.open(filename + "_red.png"))
-        g = np.array(Image.open(filename + "_green.png"))
-        b = np.array(Image.open(filename + "_blue.png"))
-        y = np.array(Image.open(filename + "_yellow.png"))
+        r = np.array(data_transforms(Image.open(filename + "_red.png")))
+        g = np.array(data_transforms(Image.open(filename + "_green.png")))
+        b = np.array(data_transforms(Image.open(filename + "_blue.png")))
+        y = np.array(data_transforms(Image.open(filename + "_yellow.png")))
         images[:, :, 0] = r.astype(np.uint8)
         images[:, :, 1] = g.astype(np.uint8)
         images[:, :, 2] = b.astype(np.uint8)
@@ -202,7 +203,9 @@ if __name__ == '__main__':
             'num_workers': 0,
             'num_classes': 28}
     data_loader = ProteinDataLoader(**dictio)
+    from data import *
     
+    data_loader = data_transforms(data_loader)
     def display_image(image, ax):
         [a.axis('off') for a in ax]
         r, g, b, y = image

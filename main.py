@@ -36,10 +36,10 @@ if __name__ == '__main__':
     
     dictio = {'data_dir': "./human-protein-atlas-image-classification/train",
                 'csv_path': "./human-protein-atlas-image-classification/train.csv",
-                'img_size': 512,
+                'img_size': 225,
                 'batch_size': 64,
                 'shuffle': True,
-                'validation_split': 0.15,
+                'validation_split': 0.001,
                 'num_workers': 0,
                 'num_classes': 28}
 
@@ -54,12 +54,12 @@ if __name__ == '__main__':
 
     val_loader = data_loader.split_validation()
 
-    """model = Net()
+
     if use_cuda:
         print('Using GPU')
         model.cuda()
     else:
-        print('Using CPU')"""
+        print('Using CPU')
     #pretrained_model = models.resnet50(pretrained = True)
     #IN_FEATURES = pretrained_model.fc.in_features 
     #OUTPUT_DIM = 200
@@ -91,9 +91,9 @@ if __name__ == '__main__':
         for batch_idx, (data, target) in enumerate(data_loader):
             if use_cuda:
                 data, target = data.cuda(), target.cuda()
-            print(data.view(64,4,512,512).shape)
+
             optimizer.zero_grad()
-            output = model(data.view(64,4,512,512))
+            output = model(data)
 
             loss = focal_loss(output, target)
             loss.backward()
@@ -107,16 +107,21 @@ if __name__ == '__main__':
         model.eval()
         validation_loss = 0
         correct = 0
-        for data, target in val_loader:
+        for batch_idx, (data, target) in enumerate(val_loader):
             if use_cuda:
                 data, target = data.cuda(), target.cuda()
-            output,aux = model(data)
+            output = model(data)
             # sum up batch loss
 
             validation_loss += focal_loss(output, target).data.item()
             # get the index of the max log-probability
             pred = output.data.max(1, keepdim=True)[1]
-            correct += pred.eq(target.data.view_as(pred)).cpu().sum()
+            #_, pred = torch.max(output, dim=1)
+            #print(output.data.max(1, keepdim=True))
+            #correct += pred.eq(target.data.view_as(pred)).cpu().sum()
+            target = target.data.max(1,keepdim=True)[1]
+            correct += pred.eq(target).cpu().sum()
+            print(batch_idx)
 
         validation_loss /= len(val_loader.dataset)
         print('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
@@ -126,7 +131,7 @@ if __name__ == '__main__':
 
 
     for epoch in range(1, args.epochs + 1):
-        train(epoch)
+        #train(epoch)
         validation()
         model_file = args.experiment + '/model_' + str(epoch) + '.pth'
         torch.save(model.state_dict(), model_file)
