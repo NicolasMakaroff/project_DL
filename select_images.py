@@ -13,7 +13,7 @@ print(len(files))
 #print(n)
 #indexes = np.random.choice(len(files),n).astype(int)
 name_files = []
-for i in range(0,len(files),4*10):
+for i in range(0,len(files),4*5):
     name_files.extend([files[i],files[i+1],files[i+2],files[i+3]])
 print(len(name_files))
 final = []

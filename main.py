@@ -39,12 +39,12 @@ if __name__ == '__main__':
                 'img_size': 225,
                 'batch_size': 64,
                 'shuffle': True,
-                'validation_split': 0.001,
+                'validation_split': 0.1,
                 'num_workers': 0,
                 'num_classes': 28}
 
     data_loader = ProteinDataLoader(**dictio)
-    
+    print(len(data_loader.dataset))
     # Create experiment folder
     if not os.path.isdir(args.experiment):
         os.makedirs(args.experiment)
@@ -53,13 +53,10 @@ if __name__ == '__main__':
     
 
     val_loader = data_loader.split_validation()
+    print(len(data_loader.dataset))
+    print(len(val_loader.dataset))
 
 
-    if use_cuda:
-        print('Using GPU')
-        model.cuda()
-    else:
-        print('Using CPU')
     #pretrained_model = models.resnet50(pretrained = True)
     #IN_FEATURES = pretrained_model.fc.in_features 
     #OUTPUT_DIM = 200
@@ -70,6 +67,11 @@ if __name__ == '__main__':
     #model.load_state_dict(pretrained_model.state_dict())
     #optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     model = Resnet50Model()
+    if use_cuda:
+        print('Using GPU')
+        model.cuda()
+    else:
+        print('Using CPU')
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     import torch.nn.functional as F
 
