@@ -156,7 +156,7 @@ class ProteinDataset(Dataset):
             y = str(self.images_df.iloc[index].Id.absolute())
         if self.augument:
             X = self.augumentor(X)
-        X = T.Compose([T.ToPILImage(), T.ToTensor()])(X)
+        X = T.Compose([T.ToPILImage(), T.Resize(299,299),T.ToTensor()])(X)
         return X.float(), y
 
     def read_labels(self, index):
@@ -166,10 +166,10 @@ class ProteinDataset(Dataset):
         row = self.images_df.iloc[index]
         filename = str(row.Id.absolute())
         images = np.zeros(shape=(self.img_size, self.img_size, 4))
-        r = np.array(Image.open(filename + "_red.png"))
-        g = np.array(Image.open(filename + "_green.png"))
-        b = np.array(Image.open(filename + "_blue.png"))
-        y = np.array(Image.open(filename + "_yellow.png"))
+        r = np.array(data_transforms(Image.open(filename + "_red.png")))
+        g = np.array(data_transforms(Image.open(filename + "_green.png")))
+        b = np.array(data_transforms(Image.open(filename + "_blue.png")))
+        y = np.array(data_transforms(Image.open(filename + "_yellow.png")))
         images[:, :, 0] = r.astype(np.uint8)
         images[:, :, 1] = g.astype(np.uint8)
         images[:, :, 2] = b.astype(np.uint8)
