@@ -110,7 +110,7 @@ if __name__ == '__main__':
                 print('Train Epoch: {} [{}/{:.0f} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     epoch, batch_idx * len(data), len(data_loader.dataset)*0.9,
                     100. * batch_idx / np.floor(len(data_loader)*0.9), loss.data.item()))
-        return loss 
+
     def validation():
         model.eval()
         validation_loss = 0
@@ -135,21 +135,21 @@ if __name__ == '__main__':
         print('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{:.0f} ({:.0f}%)'.format(
             validation_loss, correct, np.floor(len(val_loader.dataset)*0.1),
             100. * correct / np.floor(len(val_loader.dataset)*0.1)))
+        return validation_loss
 
-
-    train_error = []
+    val_error = []
     for epoch in range(1, args.epochs + 1):
-        loss = train(epoch)
-        train_error.append(loss)
-        validation()
+        train(epoch)
+        loss = validation()
+        val_error.append(loss)
         model_file = args.experiment + '/model_' + str(epoch) + '.pth'
         torch.save(model.state_dict(), model_file)
         print('Saved model to ' + model_file)
-    plt.plot(range(1, args.epochs+1), train_error)
+    plt.plot(range(1, args.epochs+1), val_error)
     plt.xlabel("num_epochs")
     plt.ylabel("Train error")
     plt.title("Visualization of convergence")
-    plt.savefig('/content/drive/MyDrive/DL/inception.png')
+    plt.savefig('./images/inception.png')
     
     from gradcam import *
     
@@ -160,7 +160,7 @@ if __name__ == '__main__':
         grad_cam = GradCam(model=model.vgg16, feature_module=model.vgg16.layer5, \
                        target_layer_names=["2"], use_cuda=use_cuda)
     elif args.model == 'inceptionv3':
-        grad_cam = GradCam(model=model.inceptionv3, feature_module=model.resnet.Mixed_7c, \
+        grad_cam = GradCam(model=model.inceptionv3, feature_module=model.inceptionv3.Mixed_7c, \
                        target_layer_names=["2"], use_cuda=use_cuda)
     elif args.model == 'mixte':
         grad_cam = GradCam(model=model.resnet, feature_module=model.resnet.layer4, \
@@ -213,9 +213,9 @@ if __name__ == '__main__':
     cam_gb = deprocess_image(cam_mask*gb)
     gb = deprocess_image(gb)
 
-    cv2.imwrite("images/cam_resnet.jpg", cam)
-    cv2.imwrite('images/gb_resnet.jpg', gb)
-    cv2.imwrite('images/cam_gb_resnet.jpg', cam_gb)
-    cv2.imwrite('images/image.jpg',image)
+    cv2.imwrite("./images/cam_resnet.jpg", cam)
+    cv2.imwrite('./images/gb_resnet.jpg', gb)
+    cv2.imwrite('./images/cam_gb_resnet.jpg', cam_gb)
+    cv2.imwrite('./images/image.jpg',image)
 
     
