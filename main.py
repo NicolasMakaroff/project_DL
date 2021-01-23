@@ -37,8 +37,8 @@ if __name__ == '__main__':
     use_cuda = torch.cuda.is_available()
     torch.manual_seed(args.seed)
     
-    dictio = {'data_dir': "./human-protein-atlas-image-classification/train",
-                'csv_path': "./human-protein-atlas-image-classification/train.csv",
+    dictio = {'data_dir': "./train",
+                'csv_path': "./train-2.csv",
                 'img_size': 299,
                 'batch_size': 32,
                 'shuffle': True,
@@ -53,11 +53,11 @@ if __name__ == '__main__':
         os.makedirs(args.experiment)
 
     # Data initialization and loading
-    
+    print('ok1')
 
     val_loader = data_loader.split_validation()
 
-
+    print('ok2')
     model = InceptionV3Model()
     if use_cuda:
         print('Using GPU')
@@ -97,7 +97,7 @@ if __name__ == '__main__':
                 print('Train Epoch: {} [{}/{:.0f} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     epoch, batch_idx * len(data), len(data_loader.dataset)*0.9,
                     100. * batch_idx / np.floor(len(data_loader)*0.9), loss.data.item()))
-
+        return loss 
     def validation():
         model.eval()
         validation_loss = 0
@@ -124,13 +124,18 @@ if __name__ == '__main__':
             100. * correct / np.floor(len(val_loader.dataset)*0.1)))
 
 
-
+    train_error = []
     for epoch in range(1, args.epochs + 1):
-        train(epoch)
+        loss = train(epoch)
+        train_error.append(loss)
         validation()
         model_file = args.experiment + '/model_' + str(epoch) + '.pth'
         torch.save(model.state_dict(), model_file)
         print('Saved model to ' + model_file)
-
+    plt.plot(range(1, args.epochs+1), train_error)
+    plt.xlabel("num_epochs")
+    plt.ylabel("Train error")
+    plt.title("Visualization of convergence")
+    plt.savefig('/content/drive/MyDrive/DL/inception.png')
 
     
