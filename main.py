@@ -13,12 +13,17 @@ from torch.autograd import Variable
 from tqdm import tqdm
 from collections import namedtuple
 import numpy as np
+from F1 import f1_loss
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='RecVis A3 training script')
     parser.add_argument('--data', type=str, default='bird_dataset', metavar='D',
                         help="folder where data is located. train_images/ and val_images/ need to be found in the folder")
+    parser.add_argument('--model', type=str, default='resnet', metavar='D',
+                        help="model to choose to perform training (resnet, vgg16, inceptionv3, mixte)")
     parser.add_argument('--batch-size', type=int, default=64, metavar='B',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--epochs', type=int, default=20, metavar='N',
@@ -37,8 +42,8 @@ if __name__ == '__main__':
     use_cuda = torch.cuda.is_available()
     torch.manual_seed(args.seed)
     
-    dictio = {'data_dir': "./train",
-                'csv_path': "./train-2.csv",
+    dictio = {'data_dir': "./human-protein-atlas-image-classification/train",
+                'csv_path': "./human-protein-atlas-image-classification/train.csv",
                 'img_size': 299,
                 'batch_size': 32,
                 'shuffle': True,
@@ -53,12 +58,20 @@ if __name__ == '__main__':
         os.makedirs(args.experiment)
 
     # Data initialization and loading
-    print('ok1')
 
     val_loader = data_loader.split_validation()
-
-    print('ok2')
-    model = InceptionV3Model()
+    
+    if args.model == 'resnet':
+        model = Resnet50Model()
+    elif args.model == 'vgg16':
+        model = VGG16Model()
+    elif args.model == 'inceptionv3':
+        model = InceptionV3Model()
+    elif args.model == 'mixte':
+        model = Net()
+    else :
+        model == Resnet50Model()
+    print(model)
     if use_cuda:
         print('Using GPU')
         model.cuda()
@@ -88,7 +101,7 @@ if __name__ == '__main__':
                 data, target = data.cuda(), target.cuda()
 
             optimizer.zero_grad()
-            output,_ = model(data)
+            output = model(data)
  
             loss = focal_loss(output, target)
             loss.backward()
@@ -137,5 +150,72 @@ if __name__ == '__main__':
     plt.ylabel("Train error")
     plt.title("Visualization of convergence")
     plt.savefig('/content/drive/MyDrive/DL/inception.png')
+    
+    from gradcam import *
+    
+    if args.model == 'resnet':
+        grad_cam = GradCam(model=model.resnet, feature_module=model.resnet.layer4, \
+                       target_layer_names=["2"], use_cuda=use_cuda)
+    elif args.model == 'vgg16':
+        grad_cam = GradCam(model=model.vgg16, feature_module=model.vgg16.layer5, \
+                       target_layer_names=["2"], use_cuda=use_cuda)
+    elif args.model == 'inceptionv3':
+        grad_cam = GradCam(model=model.inceptionv3, feature_module=model.resnet.Mixed_7c, \
+                       target_layer_names=["2"], use_cuda=use_cuda)
+    elif args.model == 'mixte':
+        grad_cam = GradCam(model=model.resnet, feature_module=model.resnet.layer4, \
+                       target_layer_names=["2"], use_cuda=use_cuda)
+    else :
+        grad_cam = GradCam(model=model.resnet, feature_module=model.resnet.layer4, \
+                       target_layer_names=["2"], use_cuda=use_cuda)
+
+
+    dictio = {'data_dir': "../train",
+            'csv_path': "../train-2.csv",
+            'img_size': 299,
+            'batch_size': 1,
+            'shuffle': True,
+            'validation_split': 0.15,
+            'num_workers': 0,
+            'num_classes': 28}
+    data_loader = ProteinDataLoader(**dictio)
+
+    inputs, classes = next(iter(data_loader))
+
+    if use_cuda:
+        inputs = inputs.cuda()
+
+    target_category = None
+    grayscale_cam = grad_cam(inputs, target_category)
+    inputs = inputs.squeeze(0)
+
+    R = np.array(inputs[0].cpu())
+    G = np.array(inputs[1].cpu())
+    B = np.array(inputs[2].cpu())
+    Y = np.array(inputs[3].cpu())
+
+    image = np.stack((
+        R,
+        G, 
+        (B+Y)/2),-1)
+
+    image = cv2.resize(image, (299, 299))
+    image = np.divide(image, 255)
+    
+    grayscale_cam = cv2.resize(grayscale_cam, (299, 299))
+    cam = show_cam_on_image(image, grayscale_cam)
+
+    gb_model = GuidedBackpropReLUModel(model=model, use_cuda=use_cuda)
+    gb = gb_model(inputs.unsqueeze(0), target_category=target_category)
+    gb = gb.transpose((1, 2, 0))
+
+    cam_mask = cv2.merge([grayscale_cam, grayscale_cam, grayscale_cam, grayscale_cam])
+    cam_gb = deprocess_image(cam_mask*gb)
+    gb = deprocess_image(gb)
+
+    cv2.imwrite("images/cam_resnet.jpg", cam)
+    cv2.imwrite('images/gb_resnet.jpg', gb)
+    cv2.imwrite('images/cam_gb_resnet.jpg', cam_gb)
+    cv2.imwrite('images/image.jpg',image)
 
     

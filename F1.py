@@ -1,4 +1,6 @@
-def f1_loss(y_true:torch.Tensor, y_pred:torch.Tensor):
+import torch
+
+def f1_loss(y_true, y_pred):
     '''Calculate F1 score. Can work with gpu tensors
     '''
     """if y_pred.ndim == 2:
@@ -16,5 +18,5 @@ def f1_loss(y_true:torch.Tensor, y_pred:torch.Tensor):
     recall = tp / (tp + fn + epsilon)
     
     f1 = 2* (precision*recall) / (precision + recall + epsilon)
-    f1.requires_grad = False
+    #f1.requires_grad = False
     return f1

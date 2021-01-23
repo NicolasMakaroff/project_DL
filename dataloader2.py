@@ -196,7 +196,7 @@ class ProteinDataset(Dataset):
 if __name__ == '__main__':
     dictio = {'data_dir': "./human-protein-atlas-image-classification/train",
             'csv_path': "./human-protein-atlas-image-classification/train.csv",
-            'img_size': 512,
+            'img_size': 299,
             'batch_size': 1,
             'shuffle': True,
             'validation_split': 0.15,
@@ -205,7 +205,7 @@ if __name__ == '__main__':
     data_loader = ProteinDataLoader(**dictio)
     from data import *
     
-    data_loader = data_transforms(data_loader)
+    #data_loader = data_transforms(data_loader)
     def display_image(image, ax):
         [a.axis('off') for a in ax]
         r, g, b, y = image
@@ -223,7 +223,7 @@ if __name__ == '__main__':
     # Get a batch of training data
     # inputs contains 4 images because batch_size=4 for the dataloaders
     inputs, classes = next(iter(data_loader))
-    
+    print(inputs.shape)
     # Make a grid from batch
     out = torchvision.utils.make_grid(inputs)
     fig, ax = plt.subplots(figsize=(15,5),nrows=1, ncols=4)
