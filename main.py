@@ -22,11 +22,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='RecVis A3 training script')
     parser.add_argument('--data', type=str, default='bird_dataset', metavar='D',
                         help="folder where data is located. train_images/ and val_images/ need to be found in the folder")
+    parser.add_argument('--saved_model', type=str, default=None, metavar='M',
+                    help="the model file to be evaluated. Usually it is of the form model_X.pth")
     parser.add_argument('--model', type=str, default='resnet', metavar='D',
                         help="model to choose to perform training (resnet, vgg16, inceptionv3, mixte)")
     parser.add_argument('--batch-size', type=int, default=64, metavar='B',
                         help='input batch size for training (default: 64)')
-    parser.add_argument('--epochs', type=int, default=20, metavar='N',
+    parser.add_argument('--epochs', type=int, default=10, metavar='N',
                         help='number of epochs to train (default: 10)')
     parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                         help='learning rate (default: 0.01)')
@@ -42,8 +44,8 @@ if __name__ == '__main__':
     use_cuda = torch.cuda.is_available()
     torch.manual_seed(args.seed)
     
-    dictio = {'data_dir': "./human-protein-atlas-image-classification/train",
-                'csv_path': "./human-protein-atlas-image-classification/train.csv",
+    dictio = {'data_dir': "./train",
+                'csv_path': "./train-2.csv",
                 'img_size': 299,
                 'batch_size': 32,
                 'shuffle': True,
@@ -71,7 +73,7 @@ if __name__ == '__main__':
         model = Net()
     else :
         model == Resnet50Model()
-    print(model)
+
     if use_cuda:
         print('Using GPU')
         model.cuda()
@@ -138,20 +140,24 @@ if __name__ == '__main__':
         return validation_loss
 
     val_error = []
-    for epoch in range(1, args.epochs + 1):
-        train(epoch)
-        loss = validation()
-        val_error.append(loss)
-        model_file = args.experiment + '/model_' + str(epoch) + '.pth'
-        torch.save(model.state_dict(), model_file)
-        print('Saved model to ' + model_file)
-    plt.plot(range(1, args.epochs+1), val_error)
-    plt.xlabel("num_epochs")
-    plt.ylabel("Train error")
-    plt.title("Visualization of convergence")
-    plt.savefig('./images/inception.png')
+    if args.saved_model is None:
+        for epoch in range(1, args.epochs + 1):
+            train(epoch)
+            loss = validation()
+            val_error.append(loss)
+            model_file = args.experiment + '/model_' + str(epoch) + '.pth'
+            torch.save(model.state_dict(), model_file)
+            print('Saved model to ' + model_file)
+        plt.plot(range(1, args.epochs+1), val_error)
+        plt.xlabel("num_epochs")
+        plt.ylabel("Train error")
+        plt.title("Visualization of convergence")
+        plt.savefig('./images/inception.png')
     
-    from gradcam import *
+    else:
+        model.load_state_dict(torch.load(args.saved_model, map_location=torch.device('cuda')))
+
+    """from gradcam import *
     
     if args.model == 'resnet':
         grad_cam = GradCam(model=model.resnet, feature_module=model.resnet.layer4, \
@@ -170,8 +176,8 @@ if __name__ == '__main__':
                        target_layer_names=["2"], use_cuda=use_cuda)
 
 
-    dictio = {'data_dir': "../train",
-            'csv_path': "../train-2.csv",
+    dictio = {'data_dir': "./train",
+            'csv_path': "./train-2.csv",
             'img_size': 299,
             'batch_size': 1,
             'shuffle': True,
@@ -186,6 +192,7 @@ if __name__ == '__main__':
         inputs = inputs.cuda()
 
     target_category = None
+
     grayscale_cam = grad_cam(inputs, target_category)
     inputs = inputs.squeeze(0)
 
@@ -205,7 +212,7 @@ if __name__ == '__main__':
     grayscale_cam = cv2.resize(grayscale_cam, (299, 299))
     cam = show_cam_on_image(image, grayscale_cam)
 
-    gb_model = GuidedBackpropReLUModel(model=model, use_cuda=use_cuda)
+    gb_model = GuidedBackpropReLUModel(model=model.resnet, use_cuda=use_cuda)
     gb = gb_model(inputs.unsqueeze(0), target_category=target_category)
     gb = gb.transpose((1, 2, 0))
 
@@ -216,6 +223,62 @@ if __name__ == '__main__':
     cv2.imwrite("./images/cam_resnet.jpg", cam)
     cv2.imwrite('./images/gb_resnet.jpg', gb)
     cv2.imwrite('./images/cam_gb_resnet.jpg', cam_gb)
-    cv2.imwrite('./images/image.jpg',image)
+    image = np.float32(image)
+    image = image / np.max(image)
+    image = np.uint8(255 * image)
+    cv2.imwrite('./images/image.jpg',image)"""
+    
+    from grad import *
+    
+    if args.model == 'resnet':
+        model = model.resnet
+    elif args.model == 'vgg16':
+        model = model.vgg16
+    elif args.model == 'inceptionv3':
+        model = model.inceptionv3
+    elif args.model == 'mixte':
+        model = model.resnet
+    else :
+        model = model.resnet
+        
+    cam = Grad_CAM(model)
+
+    dictio = {'data_dir': "./human-protein-atlas-image-classification/train",
+                'csv_path': "./human-protein-atlas-image-classification/train.csv",
+                'img_size': 299,
+                'batch_size': 1,
+                'shuffle': True,
+                'validation_split': 0.15,
+                'num_workers': 0,
+                'num_classes': 28}
+    data_loader = ProteinDataLoader(**dictio)
+
+    inputs, classes = next(iter(data_loader))
+    inputs = inputs.squeeze(0)
+    R = np.array(inputs[0].cpu())
+    G = np.array(inputs[1].cpu())
+    B = np.array(inputs[2].cpu())
+    Y = np.array(inputs[3].cpu())
+
+    image = np.stack((
+        R,
+        G, 
+        (B+Y)/2),-1)
+
+    import cv2
+    image = cv2.resize(image, (299, 299))
+    image = np.divide(image, 255)
+    image = np.float32(image)
+    image = image / np.max(image)
+    image = np.uint8(255 * image)
+    print(inputs.unsqueeze(0).shape)
+    heatmaps, values, indices = cam.get_grad_cam(inputs.unsqueeze(0))
+    print(image.shape)
+    rgb_img = np.transpose(image, [1,0,2])
+    fig, suptitle = plot_heatmaps(rgb_img, heatmaps, values, indices)
+    fig.show()
+    plt.title(suptitle)
+    plt.show()
+    plt.savefig('./images/cam.png')
 
     

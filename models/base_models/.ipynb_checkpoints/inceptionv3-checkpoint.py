@@ -320,4 +320,4 @@ class InceptionV3(nn.Module):
         x = self.dropout(x)
         x = x.view(x.size(0), -1)
         x = self.linear(x)
-        return x, 0
+        return x

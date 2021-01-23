@@ -57,4 +57,4 @@ class VGG16(nn.Module):
         out = self.layer7(out)
         out = self.layer8(out)
 
-        return out, vgg16_features
+        return out
