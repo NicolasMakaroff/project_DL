@@ -14,7 +14,7 @@ class Resnet50Model(nn.Module):
                                n_blocks = [3, 4, 6, 3],
                                channels = [64, 128, 256, 512])
         self.resnet = ResNet(resnet50_config, num_classes)
-        #self.resnet = models.resnet50(pretrained=False)
+
         w = self.resnet.conv1.weight
         self.resnet.conv1 = nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.resnet.conv1.weight = nn.Parameter(torch.cat((w, 0.5 * (w[:, :1, :, :] + w[:, 2:, :, :])), dim=1))

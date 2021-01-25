@@ -28,7 +28,7 @@ def vgg_fc_layer(size_in, size_out):
     return layer
 
 class VGG16(nn.Module):
-    def __init__(self, n_classes=28):
+    def __init__(self, n_classes=28, mixte = False):
         super(VGG16, self).__init__()
 
         # Conv blocks (BatchNorm + ReLU activation added in each block)
@@ -39,7 +39,10 @@ class VGG16(nn.Module):
         self.layer5 = vgg_conv_block([512,512,512], [512,512,512], [3,3,3], [1,1,1], 2, 2)
 
         # FC layers
-        self.layer6 = vgg_fc_layer(9*9*512, 4096) #41472
+        if mixte:
+            self.layer6 = vgg_fc_layer(7*7*512, 4096) #41472
+        else:
+            self.layer6 = vgg_fc_layer(9*9*512, 4096) #41472
         self.layer7 = vgg_fc_layer(4096, 4096)
 
         # Final layer
@@ -52,7 +55,7 @@ class VGG16(nn.Module):
         out = self.layer4(out)
         vgg16_features = self.layer5(out)
         out = vgg16_features.view(out.size(0), -1)
-        print(out.shape)
+
         out = self.layer6(out)
         out = self.layer7(out)
         out = self.layer8(out)

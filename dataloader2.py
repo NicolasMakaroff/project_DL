@@ -1,3 +1,12 @@
+"""
+Inspired by the notebooks avalaible on the Kaggle competition web page : 
+https://www.kaggle.com/zij212/human-protein-atlas-train-val-split
+https://www.kaggle.com/aidoctor/pretrained-resnet34-with-rgby-0-460-public-ac3c07
+https://www.kaggle.com/vandalkp/human-protein-resnet50-training
+https://www.kaggle.com/mohanamurali/pretrained-inceptionresnetv2
+"""
+
+
 from torchvision import datasets, transforms
 
 from PIL import Image
